@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+Forked from jonbretman/jinja-to-js
+
+This forks parametrizes the Jinja loader (rather than only supporting FileSystemLoader).
+"""
+
 from __future__ import unicode_literals
 
 import contextlib
@@ -8,7 +14,7 @@ import os
 
 from os import path
 
-from jinja2 import Environment, FileSystemLoader, nodes
+from jinja2 import Environment, nodes
 import six
 
 
@@ -161,7 +167,7 @@ def temp_var_names_generator():
 class JinjaToJS(object):
 
     def __init__(self,
-                 template_root,
+                 loader,
                  template_name,
                  js_module_format=None,
                  runtime_path='jinja-to-js',
@@ -172,8 +178,8 @@ class JinjaToJS(object):
                  custom_filters=None):
         """
         Args:
-            template_root (str): The path to where templates should be loaded from.
-            template_name (str): The name of the template to compile (relative to `template_root`).
+            loader (str): The Jinja loader that can find template by `template_name`.
+            template_name (str): The name of the template to compile (found by `loader`).
             js_module_format (str, optional): The JavaScript module format to use.
                                               One of ('amd', 'commonjs', 'es6')
             runtime_path (str, optional): If `js_module_format` is specified then the JavaScript
@@ -199,7 +205,7 @@ class JinjaToJS(object):
                                                     registered with the jinja-to-js JS runtime.
         """
 
-        self.environment = Environment(loader=FileSystemLoader(template_root),
+        self.environment = Environment(loader=loader,
                                        autoescape=True,
                                        extensions=['jinja2.ext.with_', 'jinja2.ext.autoescape'])
         self.output = six.StringIO()
@@ -213,7 +219,7 @@ class JinjaToJS(object):
         self.runtime_path = runtime_path
         self.include_prefix = include_prefix
         self.include_ext = include_ext
-        self.template_root = template_root
+        self.loader = loader
         self.template_name = template_name
         self.custom_filters = custom_filters or []
 
@@ -335,14 +341,15 @@ class JinjaToJS(object):
                 block.super_block = b
 
         # load the parent template
-        parent_template = JinjaToJS(template_root=self.template_root,
+        parent_template = JinjaToJS(loader=self.loader,
                                     template_name=node.template.value,
                                     js_module_format=self.js_module_format,
                                     runtime_path=self.runtime_path,
                                     include_prefix=self.include_prefix,
                                     include_ext=self.include_ext,
                                     child_blocks=self.child_blocks,
-                                    dependencies=self.dependencies)
+                                    dependencies=self.dependencies,
+                                    custom_filters=self.custom_filters)
 
         # add the parent templates output to the current output
         self.output.write(parent_template.output.getvalue())
