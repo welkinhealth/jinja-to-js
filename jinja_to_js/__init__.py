@@ -943,41 +943,17 @@ class JinjaToJS(object):
         self.output.write('))')
 
     def _process_include(self, node, **kwargs):
-        with self._interpolation(safe=True):
-            include_path = node.template.value
+        child_template = JinjaToJS(loader=self.loader,
+                                   template_name=node.template.value,
+                                   js_module_format=self.js_module_format,
+                                   runtime_path=self.runtime_path,
+                                   include_prefix=self.include_prefix,
+                                   include_ext=self.include_ext,
+                                   child_blocks=self.child_blocks,
+                                   dependencies=self.dependencies,
+                                   custom_filters=self.custom_filters)
 
-            if include_path == self.template_name:
-                # template is including itself
-                include_var_name = self.js_function_name
-            else:
-                if self.include_prefix:
-                    include_path = self.include_prefix + node.template.value
-                elif self.js_module_format in ('es6', 'commonjs',) and self.template_name:
-                    _, absolute_include_path, _ = self.environment.loader.get_source(
-                        self.environment, node.template.value
-                    )
-                    include_path = os.path.relpath(
-                        absolute_include_path, os.path.dirname(self.template_path)
-                    )
-                    if not include_path.startswith('.'):
-                        include_path = './' + include_path
-
-                include_path = path.splitext(include_path)[0] + self.include_ext
-                include_var_name = self._get_depencency_var_name(include_path)
-
-                if not include_var_name:
-                    include_var_name = self._add_dependency(include_path)
-
-            if self.js_module_format is None:
-                self.output.write('jinjaToJS.include("')
-                self.output.write(include_path)
-                self.output.write('");')
-            else:
-                self.output.write(include_var_name)
-
-            self.output.write('(')
-            self.output.write(self.context_name)
-            self.output.write(')')
+        self.output.write(child_template.output.getvalue())
 
     def _process_add(self, node, **kwargs):
         self._process_math(node, math_operator=' + ', **kwargs)

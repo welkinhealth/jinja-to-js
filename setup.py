@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='jinja-to-js',
-    version='3.1.1',
+    version='3.1.2',
     description="Turns Jinja templates into JavaScript functions that can be run in the browser.",
     keywords='jinja html javascript templating',
     author='Jon Bretman',
