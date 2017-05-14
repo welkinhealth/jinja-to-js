@@ -823,31 +823,40 @@ class JinjaToJS(object):
 
         operand = node.ops[0]
         is_equality = operand.op in ('eq', 'ne')
+        is_in_comparator = operand.op in ('in', 'notin')
         left_hand_is_const = isinstance(node.expr, nodes.Const)
         right_hand_is_const = isinstance(operand.expr, nodes.Const)
+        use_deep_comparison = not (left_hand_is_const or right_hand_is_const)
 
         # If the operand is equality and neither the left or right hand side are constants then we
         # will need to use the JavaScript deep equals function. Ideally we want to avoid using this
         # as it is quite a big function.
-        use_is_equal_function = is_equality and not (left_hand_is_const or right_hand_is_const)
+        use_is_equal_function = is_equality and use_deep_comparison
+        use_runtime_fn = use_is_equal_function or is_in_comparator
 
         with option(kwargs, use_python_bool_wrapper=False):
 
-            if use_is_equal_function:
-                if operand.op == 'ne':
+            if use_runtime_fn:
+                if operand.op in ('ne', 'notin'):
                     self.output.write('!')
-                self.output.write('__runtime.isEqual(')
+                if is_in_comparator:
+                    self.output.write('__runtime.in(')
+                elif use_is_equal_function:
+                    self.output.write('__runtime.isEqual(')
 
             self._process_node(node.expr, **kwargs)
 
-            if use_is_equal_function:
+            if use_runtime_fn:
                 self.output.write(',')
             else:
                 self.output.write(OPERANDS.get(operand.op))
 
             self._process_node(operand.expr, **kwargs)
 
-            if use_is_equal_function:
+            if is_in_comparator and use_deep_comparison:
+                self.output.write(',true')
+
+            if use_runtime_fn:
                 self.output.write(')')
 
     def _process_operand(self, node, **kwargs):
