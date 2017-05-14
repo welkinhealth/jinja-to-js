@@ -14,7 +14,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'jinja2',
-        'six'
+        'six==1.10.0'
     ],
     entry_points={
         'console_scripts': [

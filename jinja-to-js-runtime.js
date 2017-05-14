@@ -290,7 +290,35 @@
         escape: function (str) {
             str = str == null ? '' : '' + str;
             return ESCAPE_TEST_REGEX.test(str) ? str.replace(ESCAPE_REPLACE_REGEX, escaper) : str;
-        }
+        },
+
+        in: function (objA, objB, deep) {
+            var typeB;
+            var list;
+            var i;
+
+            typeB = runtime.type(objB);
+
+            if (typeB === 'Object') {
+                list = Object.keys(objB);
+            } else if (typeB === 'Array') {
+                list = objB;
+            } else {
+                return false;
+            }
+
+            if (deep !== true) {
+                return list.includes(objA);
+            }
+
+            for (i = 0; i < list.length ; i++) {
+                if (runtime.isEqual(objA, list[i])) {
+                    return true
+                }
+            }
+
+            return false;
+        },
 
     };
 
